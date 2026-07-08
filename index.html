@@ -50,7 +50,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-950 text-slate-100 h-screen max-h-screen flex flex-col overflow-hidden">
 
     <!-- Header con Glassmorphism -->
     <header class="border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md py-4 px-6 flex justify-between items-center z-10">
@@ -65,26 +65,26 @@
         </div>
         
         <div class="flex items-center gap-4">
-            <button id="btn-select-dir" class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 active:scale-95 transition-all text-white font-medium py-2 px-4 rounded-lg shadow-md shadow-brand-600/20 text-sm">
-                <i data-lucide="folder-open" class="w-4 h-4"></i>
-                Abrir Carpeta
+            <button id="btn-select-dir" class="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 active:scale-95 transition-all text-white font-semibold py-2 px-4 rounded-lg shadow-md shadow-brand-600/25 text-sm" title="Abre o crea una carpeta local para tu bóveda de notas">
+                <i data-lucide="folder-git-2" class="w-4 h-4"></i>
+                Abrir / Crear Bóveda
             </button>
             <div class="h-6 w-[1px] bg-slate-800"></div>
             <span id="vault-status" class="flex items-center gap-2 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 py-1.5 px-3 rounded-full">
                 <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                Sin Carpeta
+                Sin Bóveda
             </span>
         </div>
     </header>
 
     <!-- Main Workspace -->
-    <div class="flex-1 flex overflow-hidden">
+    <div class="flex-1 flex overflow-hidden min-h-0">
         
         <!-- Sidebar: Archivos -->
         <aside class="w-72 border-r border-slate-800/80 bg-slate-900/20 flex flex-col shrink-0">
             <div class="p-4 border-b border-slate-800/50 flex justify-between items-center">
                 <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">Notas (.md)</span>
-                <button id="btn-new-file" disabled class="text-slate-500 hover:text-brand-400 disabled:opacity-50 disabled:hover:text-slate-500 transition-colors p-1" title="Nueva Nota">
+                <button id="btn-new-file" class="text-slate-400 hover:text-brand-400 transition-colors p-1" title="Nueva Nota">
                     <i data-lucide="file-plus" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -107,7 +107,60 @@
         </aside>
 
         <!-- Editor y Preview -->
-        <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
+        <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative min-h-0">
+            <!-- Pantalla de Bienvenida Premium (Dashboard Inicial) -->
+            <div id="welcome-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 z-30 transition-all duration-500">
+                <div class="max-w-xl px-6 w-full text-center relative">
+                    <!-- Efecto de brillo de fondo -->
+                    <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-80 h-80 bg-brand-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+                    <div class="absolute -bottom-20 left-1/4 w-60 h-60 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none"></div>
+
+                    <!-- Icono interactivo -->
+                    <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-brand-500/30">
+                        <i data-lucide="folder-heart" class="w-10 h-10 text-white animate-pulse"></i>
+                    </div>
+
+                    <h2 class="text-2xl font-extrabold text-white tracking-tight mb-2 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        Bienvenido a tu Bóveda Personal
+                    </h2>
+                    <p class="text-slate-400 text-xs max-w-md mx-auto mb-8 leading-relaxed">
+                        Crea una base de conocimiento local, rápida y segura. Para comenzar, abre una carpeta existente o crea una nueva en tu computadora que servirá como tu <strong class="text-brand-400 font-semibold">Bóveda (Vault)</strong>.
+                    </p>
+
+                    <!-- Botones Principales -->
+                    <div class="flex flex-col sm:flex-row gap-3 justify-center items-center max-w-sm mx-auto mb-6">
+                        <button id="btn-welcome-select" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 active:scale-95 transition-all text-white font-semibold py-2.5 px-5 rounded-xl shadow-lg shadow-brand-600/25 text-xs">
+                            <i data-lucide="folder-plus" class="w-4 h-4"></i>
+                            Abrir o Crear Bóveda
+                        </button>
+                        <button id="btn-toggle-guide" class="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:scale-95 border border-slate-800 transition-all text-slate-300 hover:text-white font-medium py-2.5 px-5 rounded-xl text-xs">
+                            <i data-lucide="help-circle" class="w-4 h-4"></i>
+                            ¿Cómo crear una Bóveda?
+                        </button>
+                    </div>
+
+                    <!-- Guía rápida para crear Vault (oculta por defecto) -->
+                    <div id="quick-guide" class="max-h-0 overflow-hidden transition-all duration-500 ease-in-out text-left bg-slate-900/50 backdrop-blur-sm border border-slate-800/40 rounded-xl max-w-md mx-auto">
+                        <div class="p-4 text-[11px] text-slate-400 space-y-2">
+                            <h4 class="font-bold text-slate-200 text-xs mb-1.5 flex items-center gap-1.5">
+                                <i data-lucide="info" class="w-3.5 h-3.5 text-brand-400"></i>
+                                Instrucciones de Creación Local
+                            </h4>
+                            <p>Debido a políticas de seguridad del navegador, para crear un nuevo Vault debes:</p>
+                            <ol class="list-decimal list-inside space-y-1 pl-1">
+                                <li>Hacer clic en el botón <strong class="text-slate-200">"Abrir o Crear Bóveda"</strong>.</li>
+                                <li>En el explorador de archivos, ve a la carpeta donde quieras ubicar tus notas (ej: tu Escritorio).</li>
+                                <li>Haz clic derecho en un espacio vacío y selecciona <strong class="text-slate-200">Nuevo &gt; Carpeta</strong> (o usa el botón del explorador).</li>
+                                <li>Nómbrala como quieras (ej. <code class="bg-slate-950 px-1 py-0.5 rounded text-brand-300">Mi Boveda</code>).</li>
+                                <li>Selecciona esa carpeta y haz clic en <strong class="text-slate-200">"Seleccionar carpeta"</strong>.</li>
+                                <li>Otorga permisos de edición en la alerta emergente del navegador.</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pantalla Ninguna Nota Seleccionada -->
             <div id="no-file-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20 transition-all duration-300">
                 <div class="text-center max-w-sm px-6">
                     <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-4">
@@ -134,18 +187,17 @@
                 </div>
             </div>
 
-            <!-- Área de edición dividida -->
-            <div class="flex-1 flex overflow-hidden">
+            <div class="flex-1 flex overflow-hidden min-h-0">
                 <!-- Editor (Texto Plano por ahora) -->
-                <div class="w-1/2 h-full border-r border-slate-800/50 flex flex-col">
+                <div class="w-1/2 h-full border-r border-slate-800/50 flex flex-col min-h-0">
                     <div class="px-4 py-1.5 bg-slate-900/30 border-b border-slate-800/50 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                         Editor Markdown
                     </div>
-                    <textarea id="markdown-editor" class="flex-1 w-full bg-slate-950 text-slate-300 p-6 focus:outline-none resize-none font-mono text-sm leading-relaxed border-0" placeholder="Escribe tu nota aquí usando Markdown..."></textarea>
+                    <textarea id="markdown-editor" class="flex-1 w-full bg-slate-950 text-slate-300 p-6 focus:outline-none resize-none font-mono text-sm leading-relaxed border-0 overflow-y-auto" placeholder="Escribe tu nota aquí usando Markdown..."></textarea>
                 </div>
 
                 <!-- Preview en Tiempo Real -->
-                <div class="w-1/2 h-full flex flex-col bg-slate-900/10">
+                <div class="w-1/2 h-full flex flex-col bg-slate-900/10 min-h-0">
                     <div class="px-4 py-1.5 bg-slate-900/30 border-b border-slate-800/50 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
                         Visualización de Nota
                     </div>
@@ -172,6 +224,40 @@
 
     </div>
 
+    <!-- Modal para Nueva Nota Premium -->
+    <div id="new-file-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900/90 border border-slate-800/85 backdrop-blur-md rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl shadow-brand-500/10 transform scale-95 transition-transform duration-300" id="modal-container">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-9 h-9 rounded-lg bg-brand-500/10 flex items-center justify-center">
+                    <i data-lucide="file-plus" class="text-brand-400 w-5 h-5"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-100">Crear Nueva Nota</h3>
+            </div>
+            <p class="text-xs text-slate-400 mb-5 leading-normal">Las notas se guardan en tu Bóveda local en formato Markdown (.md) y son compatibles con otros editores.</p>
+            
+            <div class="mb-5">
+                <label class="block text-[10px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">Nombre del archivo</label>
+                <div class="relative">
+                    <input type="text" id="modal-new-file-name" placeholder="Ej. Mi Nota Diaria" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-16 py-2.5 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-200 placeholder-slate-600 transition-all">
+                    <span class="absolute right-4 top-3 text-xs text-slate-500 font-mono">.md</span>
+                </div>
+                <p id="new-file-validation-msg" class="text-[11px] text-rose-400 mt-2 hidden items-center gap-1">
+                    <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+                    <span>Nombre contiene caracteres inválidos: \ / : * ? " &lt; &gt; |</span>
+                </p>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button id="btn-modal-cancel" class="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white bg-slate-900 border border-slate-800/80 hover:bg-slate-800 rounded-lg transition-all">
+                    Cancelar
+                </button>
+                <button id="btn-modal-create" class="px-4 py-2 text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 active:scale-95 rounded-lg shadow-md shadow-brand-600/10 transition-all flex items-center gap-1.5">
+                    Crear Nota
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Script del Negocio -->
     <script>
         // Inicializar Lucide Icons
@@ -191,6 +277,19 @@
         const searchInput = document.getElementById('search-input');
         const graphCanvas = document.getElementById('graph-canvas');
 
+        // Nuevas Referencias para Gestión de Bóveda y Modal de Archivos
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const btnWelcomeSelect = document.getElementById('btn-welcome-select');
+        const btnToggleGuide = document.getElementById('btn-toggle-guide');
+        const quickGuide = document.getElementById('quick-guide');
+        
+        const newFileModal = document.getElementById('new-file-modal');
+        const modalContainer = document.getElementById('modal-container');
+        const modalNewFileName = document.getElementById('modal-new-file-name');
+        const btnModalCancel = document.getElementById('btn-modal-cancel');
+        const btnModalCreate = document.getElementById('btn-modal-create');
+        const newFileValidationMsg = document.getElementById('new-file-validation-msg');
+
         // Estado de la Aplicación
         let directoryHandle = null;
         let filesMap = new Map(); // name -> FileSystemFileHandle
@@ -206,6 +305,14 @@
 
         // 1. Manejo del Directorio Local (File System Access API)
         btnSelectDir.addEventListener('click', async () => {
+            await selectDirectoryAction();
+        });
+
+        btnWelcomeSelect.addEventListener('click', async () => {
+            await selectDirectoryAction();
+        });
+
+        async function selectDirectoryAction() {
             try {
                 // Abre el selector de directorios nativo de Chrome/Edge
                 directoryHandle = await window.showDirectoryPicker({
@@ -215,10 +322,15 @@
                 // Actualizar estado en interfaz
                 vaultStatus.innerHTML = `
                     <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    Carpeta: ${directoryHandle.name}
+                    Bóveda: ${directoryHandle.name}
                 `;
                 vaultStatus.className = "flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 py-1.5 px-3 rounded-full";
-                btnNewFile.removeAttribute('disabled');
+                
+                // Ocultar pantalla de bienvenida
+                welcomeScreen.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    welcomeScreen.classList.add('hidden');
+                }, 500);
                 
                 // Listar archivos
                 await scanDirectory();
@@ -229,6 +341,18 @@
                     alert(`Error de Permisos: Es posible que tu PC tenga restricciones. Detalle: ${err.message}`);
                 }
             }
+        }
+
+        // Guía Rápida Expandible
+        btnToggleGuide.addEventListener('click', () => {
+            if (quickGuide.style.maxHeight) {
+                quickGuide.style.maxHeight = null;
+                btnToggleGuide.innerHTML = `<i data-lucide="help-circle" class="w-4 h-4"></i> ¿Cómo crear una Bóveda?`;
+            } else {
+                quickGuide.style.maxHeight = quickGuide.scrollHeight + "px";
+                btnToggleGuide.innerHTML = `<i data-lucide="chevron-up" class="w-4 h-4"></i> Ocultar Guía`;
+            }
+            lucide.createIcons();
         });
 
         // Escanear la carpeta seleccionada en búsqueda de archivos .md
@@ -339,14 +463,76 @@
             renderFilesList(searchInput.value);
         }
 
-        // Crear una nueva nota en el sistema de archivos local
-        btnNewFile.addEventListener('click', async () => {
+        // Lógica de Modal para Creación de Nota (Archivo .md)
+        btnNewFile.addEventListener('click', () => {
+            if (!directoryHandle) {
+                alert("Por favor, abre o crea una Bóveda primero.");
+                return;
+            }
+            openNewFileModal();
+        });
+
+        function openNewFileModal() {
+            newFileModal.classList.remove('hidden');
+            setTimeout(() => {
+                newFileModal.classList.remove('opacity-0');
+                modalContainer.classList.remove('scale-95');
+                modalContainer.classList.add('scale-100');
+            }, 10);
+            
+            modalNewFileName.value = '';
+            modalNewFileName.focus();
+            newFileValidationMsg.classList.add('hidden');
+            newFileValidationMsg.classList.remove('flex');
+            btnModalCreate.removeAttribute('disabled');
+        }
+
+        function closeNewFileModal() {
+            newFileModal.classList.add('opacity-0');
+            modalContainer.classList.remove('scale-100');
+            modalContainer.classList.add('scale-95');
+            setTimeout(() => {
+                newFileModal.classList.add('hidden');
+            }, 300);
+        }
+
+        btnModalCancel.addEventListener('click', closeNewFileModal);
+        
+        newFileModal.addEventListener('click', (e) => {
+            if (e.target === newFileModal) {
+                closeNewFileModal();
+            }
+        });
+
+        // Validar caracteres no permitidos en nombres de archivos de Windows (\ / : * ? " < > |)
+        const invalidChars = /[\\/:*?"<>|]/;
+        modalNewFileName.addEventListener('input', () => {
+            const name = modalNewFileName.value;
+            if (invalidChars.test(name)) {
+                newFileValidationMsg.classList.remove('hidden');
+                newFileValidationMsg.classList.add('flex');
+                btnModalCreate.setAttribute('disabled', 'true');
+            } else {
+                newFileValidationMsg.classList.add('hidden');
+                newFileValidationMsg.classList.remove('flex');
+                btnModalCreate.removeAttribute('disabled');
+            }
+        });
+
+        async function createNewFileFromModal() {
             if (!directoryHandle) return;
+            const newName = modalNewFileName.value.trim();
             
-            const newName = prompt("Escribe el nombre de la nueva nota (sin extensión):");
-            if (!newName) return;
+            if (!newName) {
+                alert("El nombre de la nota no puede estar vacío.");
+                return;
+            }
+            if (invalidChars.test(newName)) {
+                alert("El nombre contiene caracteres prohibidos.");
+                return;
+            }
             
-            const fileName = `${newName.trim()}.md`;
+            const fileName = `${newName}.md`;
             
             try {
                 // Crea el archivo en la carpeta local directamente
@@ -357,11 +543,25 @@
                 await writable.write(`---\ntitle: ${newName}\ndate: ${new Date().toISOString().split('T')[0]}\n---\n\n# ${newName}\n\nComienza a escribir aquí...`);
                 await writable.close();
                 
+                // Cerrar modal
+                closeNewFileModal();
+                
                 // Actualizar e indexar
                 await scanDirectory();
                 await selectFile(fileName);
             } catch (err) {
                 alert(`Error al crear archivo: ${err.message}`);
+            }
+        }
+
+        btnModalCreate.addEventListener('click', createNewFileFromModal);
+        
+        modalNewFileName.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !btnModalCreate.hasAttribute('disabled')) {
+                createNewFileFromModal();
+            }
+            if (e.key === 'Escape') {
+                closeNewFileModal();
             }
         });
 
@@ -429,7 +629,7 @@
                 .replace(/^\* (.*$)/gim, '<ul class="list-disc pl-5 mb-2"><li>$1</li></ul>')
                 .replace(/^\- (.*$)/gim, '<ul class="list-disc pl-5 mb-2"><li>$1</li></ul>')
                 .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-                .replace(/\[\[(.*?)\]\]/g, '<span class="text-brand-400 underline cursor-pointer hover:text-brand-300 font-medium">[[ $1 ]]</span>')
+                .replace(/\[\[(.*?)\]\]/g, '<span class="wiki-link text-brand-400 underline cursor-pointer hover:text-brand-300 font-medium" data-target="$1">[[ $1 ]]</span>')
                 .replace(/\n$/gim, '<br />')
                 .split('\n').map(p => {
                     if (!p.trim().startsWith('<h') && !p.trim().startsWith('<ul') && p.trim() !== '') {
@@ -445,6 +645,43 @@
         searchInput.addEventListener('input', (e) => {
             renderFilesList(e.target.value);
         });
+
+        // Manejar clics en Enlaces Bidireccionales (WikiLinks)
+        markdownPreview.addEventListener('click', async (e) => {
+            const wikiLink = e.target.closest('.wiki-link');
+            if (!wikiLink) return;
+
+            const targetName = wikiLink.getAttribute('data-target').trim();
+            const fileName = `${targetName}.md`;
+
+            if (filesMap.has(fileName)) {
+                await selectFile(fileName);
+            } else {
+                if (confirm(`La nota "${targetName}" no existe en tu Bóveda. ¿Deseas crearla ahora?`)) {
+                    await createNewFileFromNameDirectly(targetName);
+                }
+            }
+        });
+
+        async function createNewFileFromNameDirectly(newName) {
+            if (!directoryHandle) return;
+            const fileName = `${newName}.md`;
+            try {
+                // Crear el archivo en la carpeta local directamente
+                const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
+                
+                // Escribir contenido inicial básico
+                const writable = await fileHandle.createWritable();
+                await writable.write(`---\ntitle: ${newName}\ndate: ${new Date().toISOString().split('T')[0]}\n---\n\n# ${newName}\n\nComienza a escribir aquí...`);
+                await writable.close();
+                
+                // Actualizar e indexar
+                await scanDirectory();
+                await selectFile(fileName);
+            } catch (err) {
+                alert(`Error al crear la nota enlazada: ${err.message}`);
+            }
+        }
 
 
         // 3. Mini Graph View (Canvas 2D Interactivo)
