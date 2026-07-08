@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Vault - Editor Local Offline</title>
+    <!-- Tailwind CSS para estilos rápidos y premium -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons para iconografía moderna -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.6);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-hidden">
+
+    <!-- Header con Glassmorphism -->
+    <header class="border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md py-4 px-6 flex justify-between items-center z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                <i data-lucide="book-open" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Personal Vault</h1>
+                <p class="text-xs text-slate-400">Editor de Notas Local 100% Offline</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <button id="btn-select-dir" class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 active:scale-95 transition-all text-white font-medium py-2 px-4 rounded-lg shadow-md shadow-brand-600/20 text-sm">
+                <i data-lucide="folder-open" class="w-4 h-4"></i>
+                Abrir Carpeta
+            </button>
+            <div class="h-6 w-[1px] bg-slate-800"></div>
+            <span id="vault-status" class="flex items-center gap-2 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 py-1.5 px-3 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                Sin Carpeta
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Sidebar: Archivos -->
+        <aside class="w-72 border-r border-slate-800/80 bg-slate-900/20 flex flex-col shrink-0">
+            <div class="p-4 border-b border-slate-800/50 flex justify-between items-center">
+                <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">Notas (.md)</span>
+                <button id="btn-new-file" disabled class="text-slate-500 hover:text-brand-400 disabled:opacity-50 disabled:hover:text-slate-500 transition-colors p-1" title="Nueva Nota">
+                    <i data-lucide="file-plus" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <!-- Buscador -->
+            <div class="p-3">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="Buscar nota..." class="w-full bg-slate-900/60 border border-slate-800/60 rounded-lg pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 text-slate-200 placeholder-slate-500 transition-all">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-2.5"></i>
+                </div>
+            </div>
+
+            <!-- Lista de notas -->
+            <div class="flex-1 overflow-y-auto p-2" id="files-list">
+                <div class="text-center text-slate-500 text-sm mt-12 px-4">
+                    <i data-lucide="folder-key" class="w-8 h-8 mx-auto mb-2 text-slate-600"></i>
+                    Abre una carpeta local para listar y editar tus archivos Markdown.
+                </div>
+            </div>
+        </aside>
+
+        <!-- Editor y Preview -->
+        <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
+            <div id="no-file-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20 transition-all duration-300">
+                <div class="text-center max-w-sm px-6">
+                    <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="file-text" class="w-8 h-8 text-slate-500"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-300 mb-1">Ninguna nota seleccionada</h3>
+                    <p class="text-sm text-slate-500">Selecciona un archivo en la barra lateral para ver su contenido o editarlo.</p>
+                </div>
+            </div>
+
+            <!-- Barra de estado de nota activa -->
+            <div class="border-b border-slate-800/60 bg-slate-900/10 px-6 py-3 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="file-edit" class="w-4 h-4 text-brand-400"></i>
+                    <span id="active-filename" class="text-sm font-medium text-slate-300">nota_activa.md</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="save-indicator" class="text-xs text-slate-500 flex items-center gap-1.5">
+                        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Guardado
+                    </span>
+                    <button id="btn-save" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all active:scale-95">
+                        Guardar (Ctrl + S)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Área de edición dividida -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- Editor (Texto Plano por ahora) -->
+                <div class="w-1/2 h-full border-r border-slate-800/50 flex flex-col">
+                    <div class="px-4 py-1.5 bg-slate-900/30 border-b border-slate-800/50 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                        Editor Markdown
+                    </div>
+                    <textarea id="markdown-editor" class="flex-1 w-full bg-slate-950 text-slate-300 p-6 focus:outline-none resize-none font-mono text-sm leading-relaxed border-0" placeholder="Escribe tu nota aquí usando Markdown..."></textarea>
+                </div>
+
+                <!-- Preview en Tiempo Real -->
+                <div class="w-1/2 h-full flex flex-col bg-slate-900/10">
+                    <div class="px-4 py-1.5 bg-slate-900/30 border-b border-slate-800/50 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                        Visualización de Nota
+                    </div>
+                    <div id="markdown-preview" class="flex-1 overflow-y-auto p-6 prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed">
+                        <!-- Preview renderizado aquí -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Sidebar Derecha: Mini Graph View -->
+        <aside class="w-64 border-l border-slate-800/80 bg-slate-900/20 flex flex-col shrink-0 overflow-hidden">
+            <div class="p-4 border-b border-slate-800/50 flex items-center gap-2">
+                <i data-lucide="network" class="w-4 h-4 text-brand-400"></i>
+                <span class="text-xs font-semibold tracking-wider text-slate-400 uppercase">Vista de Conexiones</span>
+            </div>
+            <div class="flex-1 relative flex items-center justify-center bg-slate-950/40">
+                <canvas id="graph-canvas" class="w-full h-full absolute inset-0 cursor-grab"></canvas>
+                <div class="absolute bottom-3 text-center w-full pointer-events-none">
+                    <p class="text-[10px] text-slate-500 font-medium">Interacciones del grafo (arrastrar nodos)</p>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Script del Negocio -->
+    <script>
+        // Inicializar Lucide Icons
+        lucide.createIcons();
+
+        // Referencias del DOM
+        const btnSelectDir = document.getElementById('btn-select-dir');
+        const vaultStatus = document.getElementById('vault-status');
+        const filesList = document.getElementById('files-list');
+        const btnNewFile = document.getElementById('btn-new-file');
+        const activeFilename = document.getElementById('active-filename');
+        const markdownEditor = document.getElementById('markdown-editor');
+        const markdownPreview = document.getElementById('markdown-preview');
+        const noFileScreen = document.getElementById('no-file-screen');
+        const saveIndicator = document.getElementById('save-indicator');
+        const btnSave = document.getElementById('btn-save');
+        const searchInput = document.getElementById('search-input');
+        const graphCanvas = document.getElementById('graph-canvas');
+
+        // Estado de la Aplicación
+        let directoryHandle = null;
+        let filesMap = new Map(); // name -> FileSystemFileHandle
+        let activeFileHandle = null;
+        let activeFileName = null;
+        let isModified = false;
+        
+        // Elementos de Grafo Simulado
+        let nodes = [];
+        let links = [];
+        let selectedNode = null;
+        let graphOffset = { x: 0, y: 0 };
+
+        // 1. Manejo del Directorio Local (File System Access API)
+        btnSelectDir.addEventListener('click', async () => {
+            try {
+                // Abre el selector de directorios nativo de Chrome/Edge
+                directoryHandle = await window.showDirectoryPicker({
+                    mode: 'readwrite'
+                });
+                
+                // Actualizar estado en interfaz
+                vaultStatus.innerHTML = `
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    Carpeta: ${directoryHandle.name}
+                `;
+                vaultStatus.className = "flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 py-1.5 px-3 rounded-full";
+                btnNewFile.removeAttribute('disabled');
+                
+                // Listar archivos
+                await scanDirectory();
+                
+            } catch (err) {
+                console.error("Error al abrir directorio:", err);
+                if (err.name !== 'AbortError') {
+                    alert(`Error de Permisos: Es posible que tu PC tenga restricciones. Detalle: ${err.message}`);
+                }
+            }
+        });
+
+        // Escanear la carpeta seleccionada en búsqueda de archivos .md
+        async function scanDirectory() {
+            filesMap.clear();
+            filesList.innerHTML = '';
+            nodes = [];
+            links = [];
+            
+            let fileCount = 0;
+
+            for await (const entry of directoryHandle.values()) {
+                if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+                    filesMap.set(entry.name, entry);
+                    fileCount++;
+                    
+                    // Crear nodo para el grafo por cada archivo
+                    nodes.push({
+                        id: entry.name,
+                        label: entry.name.replace('.md', ''),
+                        x: Math.random() * 200 + 30,
+                        y: Math.random() * 250 + 30,
+                        r: 6
+                    });
+                }
+            }
+
+            // Generar enlaces aleatorios para simular el Graph View
+            if (nodes.length > 1) {
+                for (let i = 0; i < nodes.length; i++) {
+                    const connections = Math.floor(Math.random() * 2) + 1;
+                    for (let c = 0; c < connections; c++) {
+                        const targetIndex = Math.floor(Math.random() * nodes.length);
+                        if (targetIndex !== i) {
+                            links.push({
+                                source: nodes[i].id,
+                                target: nodes[targetIndex].id
+                            });
+                        }
+                    }
+                }
+            }
+
+            initGraph();
+            renderFilesList();
+        }
+
+        // Renderizar la lista de archivos de la barra lateral
+        function renderFilesList(filter = '') {
+            filesList.innerHTML = '';
+            
+            const filteredFiles = Array.from(filesMap.keys()).filter(name => 
+                name.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            if (filteredFiles.length === 0) {
+                filesList.innerHTML = `
+                    <div class="text-center text-slate-500 text-xs py-8">
+                        No se encontraron notas
+                    </div>
+                `;
+                return;
+            }
+
+            filteredFiles.forEach(fileName => {
+                const btn = document.createElement('button');
+                btn.className = `w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-all ${
+                    activeFileName === fileName 
+                        ? 'bg-brand-500/10 text-brand-300 font-medium border border-brand-500/20' 
+                        : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-200'
+                }`;
+                btn.innerHTML = `
+                    <i data-lucide="file" class="w-4 h-4 shrink-0 opacity-70"></i>
+                    <span class="truncate">${fileName.replace('.md', '')}</span>
+                `;
+                
+                btn.addEventListener('click', () => selectFile(fileName));
+                filesList.appendChild(btn);
+            });
+            
+            lucide.createIcons();
+        }
+
+        // Seleccionar una nota de la lista
+        async function selectFile(fileName) {
+            if (isModified) {
+                const confirmSave = confirm("Tienes cambios sin guardar. ¿Deseas guardarlos antes de salir?");
+                if (confirmSave) {
+                    await saveActiveFile();
+                }
+            }
+
+            activeFileName = fileName;
+            activeFileHandle = filesMap.get(fileName);
+            activeFilename.textContent = fileName;
+            
+            // Leer el archivo localmente
+            const file = await activeFileHandle.getFile();
+            const text = await file.text();
+            
+            markdownEditor.value = text;
+            updatePreview(text);
+            
+            // Ocultar pantalla de "no nota"
+            noFileScreen.classList.add('opacity-0', 'pointer-events-none');
+            isModified = false;
+            updateSaveStatus(true);
+            renderFilesList(searchInput.value);
+        }
+
+        // Crear una nueva nota en el sistema de archivos local
+        btnNewFile.addEventListener('click', async () => {
+            if (!directoryHandle) return;
+            
+            const newName = prompt("Escribe el nombre de la nueva nota (sin extensión):");
+            if (!newName) return;
+            
+            const fileName = `${newName.trim()}.md`;
+            
+            try {
+                // Crea el archivo en la carpeta local directamente
+                const fileHandle = await directoryHandle.getFileHandle(fileName, { create: true });
+                
+                // Escribir contenido inicial básico
+                const writable = await fileHandle.createWritable();
+                await writable.write(`---\ntitle: ${newName}\ndate: ${new Date().toISOString().split('T')[0]}\n---\n\n# ${newName}\n\nComienza a escribir aquí...`);
+                await writable.close();
+                
+                // Actualizar e indexar
+                await scanDirectory();
+                await selectFile(fileName);
+            } catch (err) {
+                alert(`Error al crear archivo: ${err.message}`);
+            }
+        });
+
+        // 2. Editor y Autoguardado/Guardado Manual
+        markdownEditor.addEventListener('input', (e) => {
+            const text = e.target.value;
+            updatePreview(text);
+            isModified = true;
+            updateSaveStatus(false);
+        });
+
+        async function saveActiveFile() {
+            if (!activeFileHandle) return;
+            
+            try {
+                // Guardar los cambios directamente en el archivo local de la PC
+                const writable = await activeFileHandle.createWritable();
+                await writable.write(markdownEditor.value);
+                await writable.close();
+                
+                isModified = false;
+                updateSaveStatus(true);
+            } catch (err) {
+                alert(`No se pudo guardar el archivo: ${err.message}`);
+            }
+        }
+
+        btnSave.addEventListener('click', saveActiveFile);
+
+        // Guardar con atajo de teclado Ctrl + S
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveActiveFile();
+            }
+        });
+
+        function updateSaveStatus(saved) {
+            if (saved) {
+                saveIndicator.innerHTML = `<i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i> Guardado`;
+                saveIndicator.className = "text-xs text-emerald-400 flex items-center gap-1.5";
+            } else {
+                saveIndicator.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-500"></i> Modificado`;
+                saveIndicator.className = "text-xs text-amber-500 flex items-center gap-1.5";
+            }
+            lucide.createIcons();
+        }
+
+        // Renderizado simple de Markdown (Simulado / HTML Básico)
+        function updatePreview(text) {
+            // Eliminar Frontmatter de la vista de renderizado
+            let cleanText = text;
+            if (text.startsWith('---')) {
+                const parts = text.split('---');
+                if (parts.length >= 3) {
+                    cleanText = parts.slice(2).join('---').trim();
+                }
+            }
+
+            // Un conversor súper básico para previsualizar títulos, listas y negritas sin dependencias
+            let html = cleanText
+                .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold border-b border-slate-800 pb-2 mb-4 mt-2 text-white">$1</h1>')
+                .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold mt-4 mb-2 text-slate-100">$1</h2>')
+                .replace(/^### (.*$)/gim, '<h3 class="text-lg font-semibold mt-3 mb-1 text-slate-200">$1</h3>')
+                .replace(/^\* (.*$)/gim, '<ul class="list-disc pl-5 mb-2"><li>$1</li></ul>')
+                .replace(/^\- (.*$)/gim, '<ul class="list-disc pl-5 mb-2"><li>$1</li></ul>')
+                .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\[\[(.*?)\]\]/g, '<span class="text-brand-400 underline cursor-pointer hover:text-brand-300 font-medium">[[ $1 ]]</span>')
+                .replace(/\n$/gim, '<br />')
+                .split('\n').map(p => {
+                    if (!p.trim().startsWith('<h') && !p.trim().startsWith('<ul') && p.trim() !== '') {
+                        return `<p class="mb-3 text-slate-300 text-sm leading-relaxed">${p}</p>`;
+                    }
+                    return p;
+                }).join('\n');
+
+            markdownPreview.innerHTML = html || '<p class="text-slate-500 italic">Documento vacío</p>';
+        }
+
+        // Búsqueda
+        searchInput.addEventListener('input', (e) => {
+            renderFilesList(e.target.value);
+        });
+
+
+        // 3. Mini Graph View (Canvas 2D Interactivo)
+        const ctx = graphCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            const rect = graphCanvas.parentElement.getBoundingClientRect();
+            graphCanvas.width = rect.width;
+            graphCanvas.height = rect.height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function initGraph() {
+            resizeCanvas();
+            
+            // Centrar coordenadas
+            nodes.forEach(node => {
+                node.x = graphCanvas.width / 2 + (Math.random() - 0.5) * 120;
+                node.y = graphCanvas.height / 2 + (Math.random() - 0.5) * 150;
+            });
+            
+            requestAnimationFrame(drawGraph);
+        }
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+            
+            // Dibujar Enlaces
+            ctx.strokeStyle = 'rgba(109, 40, 217, 0.2)';
+            ctx.lineWidth = 1;
+            links.forEach(link => {
+                const sourceNode = nodes.find(n => n.id === link.source);
+                const targetNode = nodes.find(n => n.id === link.target);
+                if (sourceNode && targetNode) {
+                    ctx.beginPath();
+                    ctx.moveTo(sourceNode.x, sourceNode.y);
+                    ctx.lineTo(targetNode.x, targetNode.y);
+                    ctx.stroke();
+                }
+            });
+
+            // Dibujar Nodos
+            nodes.forEach(node => {
+                const isActive = (node.id === activeFileName);
+                
+                // Halo de brillo
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.r + (isActive ? 6 : 3), 0, Math.PI * 2);
+                ctx.fillStyle = isActive ? 'rgba(139, 92, 246, 0.25)' : 'rgba(139, 92, 246, 0.05)';
+                ctx.fill();
+
+                // Nodo Central
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.r, 0, Math.PI * 2);
+                ctx.fillStyle = isActive ? '#a78bfa' : '#6d28d9';
+                ctx.fill();
+                
+                // Texto
+                ctx.fillStyle = isActive ? '#fff' : '#94a3b8';
+                ctx.font = isActive ? '500 10px Inter' : '400 9px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(node.label, node.x, node.y - 12);
+            });
+
+            // Simulación física muy básica para que los nodos se repelan un poco
+            applyPhysics();
+
+            requestAnimationFrame(drawGraph);
+        }
+
+        function applyPhysics() {
+            // Fuerza central suave
+            const cx = graphCanvas.width / 2;
+            const cy = graphCanvas.height / 2;
+            
+            nodes.forEach(n => {
+                n.x += (cx - n.x) * 0.01;
+                n.y += (cy - n.y) * 0.01;
+            });
+
+            // Fuerza de repulsión entre nodos
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[j].x - nodes[i].x;
+                    const dy = nodes[j].y - nodes[i].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 50) {
+                        const force = (50 - dist) * 0.02;
+                        const fx = (dx / dist) * force;
+                        const fy = (dy / dist) * force;
+                        
+                        if (nodes[i] !== selectedNode) {
+                            nodes[i].x -= fx;
+                            nodes[i].y -= fy;
+                        }
+                        if (nodes[j] !== selectedNode) {
+                            nodes[j].x += fx;
+                            nodes[j].y += fy;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Drag & Drop de nodos en el Canvas
+        graphCanvas.addEventListener('mousedown', (e) => {
+            const rect = graphCanvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Encontrar nodo cliqueado
+            selectedNode = nodes.find(node => {
+                const dist = Math.sqrt((node.x - mouseX)**2 + (node.y - mouseY)**2);
+                return dist < node.r + 10;
+            });
+
+            if (selectedNode) {
+                graphCanvas.style.cursor = 'grabbing';
+            }
+        });
+
+        graphCanvas.addEventListener('mousemove', (e) => {
+            if (selectedNode) {
+                const rect = graphCanvas.getBoundingClientRect();
+                selectedNode.x = e.clientX - rect.left;
+                selectedNode.y = e.clientY - rect.top;
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            selectedNode = null;
+            graphCanvas.style.cursor = 'grab';
+        });
+
+    </script>
+</body>
+</html>
