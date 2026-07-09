@@ -3,7 +3,7 @@ import { BookOpen, FolderGit, LogOut, HelpCircle } from 'lucide-react';
 import { useVault } from '../context/VaultContext';
 
 export const Header: React.FC = () => {
-  const { directoryHandle, selectVault, closeVault, filesMap, createNewFile, selectFile, saveActiveFile } = useVault();
+  const { directoryHandle, selectVault, closeVault, selectFile, scanVault } = useVault();
 
   const showSyntaxGuide = async () => {
     if (!directoryHandle) return;
@@ -107,15 +107,15 @@ Agrega etiquetas de forma directa anteponiendo \`#\` a una palabra alfanumérica
 `;
 
     try {
-      if (filesMap.has(guideName)) {
-        await selectFile(guideName);
-      } else {
-        const createdName = await createNewFile('Guia de Sintaxis');
-        setTimeout(async () => {
-          await saveActiveFile(guideContent);
-          await selectFile(createdName);
-        }, 150);
-      }
+      // Crear o abrir el archivo 'Guia de Sintaxis.md' directamente
+      const fileHandle = await directoryHandle.getFileHandle(guideName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(guideContent);
+      await writable.close();
+
+      // Escanear la bóveda para reflejar los cambios y seleccionar el archivo
+      await scanVault();
+      await selectFile(guideName);
     } catch (error) {
       console.error("Error al abrir o crear la guía de sintaxis:", error);
     }
