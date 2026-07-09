@@ -9,7 +9,7 @@ export const Header: React.FC = () => {
     <header className="border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md py-4 px-6 flex justify-between items-center z-10 shrink-0 h-16">
       {/* Brand Logo */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-700 to-brand-500 flex items-center justify-center shadow-lg shadow-brand-600/10">
           <BookOpen className="w-5 h-5 text-white" />
         </div>
         <div>
@@ -42,7 +42,7 @@ export const Header: React.FC = () => {
           <>
             <button
               onClick={selectVault}
-              className="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 active:scale-95 transition-all text-white font-semibold py-1.5 px-3.5 rounded-lg shadow-md shadow-brand-600/25 text-xs"
+              className="flex items-center gap-2 bg-gradient-to-r from-brand-700 to-brand-600 hover:from-brand-600 hover:to-brand-500 active:scale-95 transition-all text-white font-semibold py-1.5 px-3.5 rounded-lg shadow-md shadow-brand-600/15 text-xs"
               title="Abre o crea una carpeta local para tu bóveda de notas"
             >
               <FolderGit className="w-3.5 h-3.5" />

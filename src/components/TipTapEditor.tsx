@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useVault } from '../context/VaultContext';
-import { Heading1, Heading2, Heading3, CheckSquare, Bold, Link as LinkIcon, Calendar, Code, Save, Eye, Edit3 } from 'lucide-react';
+import { Heading1, Heading2, Heading3, CheckSquare, Bold, Link as LinkIcon, Calendar, Code, Save, Eye, Edit3, Quote, Columns } from 'lucide-react';
 
 // --- PROCESADOR DE MARKDOWN A HTML (NATIVO OFFLINE) ---
 function renderMarkdownToHtml(text: string, imagesMap: Map<string, string>): string {
@@ -30,6 +30,10 @@ function renderMarkdownToHtml(text: string, imagesMap: Map<string, string>): str
   html = html.replace(/^## (.*?)$/gm, '<h2 class="text-xl font-bold mt-5 mb-3 text-slate-100">$1</h2>');
   html = html.replace(/^### (.*?)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-slate-200">$1</h3>');
 
+  // Citas (blockquotes) con > o >>
+  html = html.replace(/^>>?\s?(.*?)$/gm, '<blockquote><p>$1</p></blockquote>');
+  html = html.replace(/<\/blockquote>\s*<blockquote>/g, '\n');
+
   // Listas de tareas
   html = html.replace(/^- \[ \] (.*?)$/gm, '<div class="flex items-center gap-2 mb-2"><input type="checkbox" disabled class="rounded border-slate-800 bg-slate-950 text-brand-500 focus:ring-0 w-4 h-4"> <span class="text-slate-300 text-sm">$1</span></div>');
   html = html.replace(/^- \[x\] (.*?)$/gm, '<div class="flex items-center gap-2 mb-2"><input type="checkbox" checked disabled class="rounded border-slate-800 bg-slate-950 text-brand-500 focus:ring-0 w-4 h-4"> <span class="text-slate-400 text-sm line-through opacity-70">$1</span></div>');
@@ -57,7 +61,7 @@ function renderMarkdownToHtml(text: string, imagesMap: Map<string, string>): str
 
   // Párrafos y saltos de línea
   const lines = html.split('\n');
-  const blockTags = ['<h1>', '<h2>', '<h3>', '<ul', '<ol', '<pre', '<p', '<div'];
+  const blockTags = ['<h1>', '<h2>', '<h3>', '<ul', '<ol', '<pre', '<p', '<div', '<blockquote>', '</blockquote>'];
   
   html = lines.map(line => {
     const trimmed = line.trim();
@@ -81,6 +85,7 @@ export const TipTapEditor: React.FC = () => {
     startPos: 0
   });
   const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
+  const [viewMode, setViewMode] = useState<'split' | 'editor' | 'preview'>('split');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
@@ -93,7 +98,8 @@ export const TipTapEditor: React.FC = () => {
     { key: 'bold', label: 'Texto en Negrita', snippet: '**texto**', desc: '**negrita**', icon: Bold },
     { key: 'link', label: 'Enlace a Nota', snippet: '[[Nota]]', desc: '[[Nota]]', icon: LinkIcon },
     { key: 'date', label: 'Fecha Actual', snippet: () => `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`, desc: 'AAAA-MM-DD', icon: Calendar },
-    { key: 'code', label: 'Bloque de Código', snippet: '```\n\n```', desc: '``` código ```', icon: Code }
+    { key: 'code', label: 'Bloque de Código', snippet: '```\n\n```', desc: '``` código ```', icon: Code },
+    { key: 'quote', label: 'Cita en Bloque', snippet: '> ', desc: '> cita', icon: Quote }
   ];
 
   const lastLoadedFileRef = useRef<string | null>(null);
@@ -319,6 +325,117 @@ export const TipTapEditor: React.FC = () => {
         setSlashMenu(prev => ({ ...prev, visible: false }));
       }
     } else {
+      // Tab para indentar y Shift + Tab para desindentar
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const value = textarea.value;
+
+        // Si es Shift + Tab (Desindentación)
+        if (e.shiftKey) {
+          const beforeSelection = value.substring(0, start);
+          const lineStart = beforeSelection.lastIndexOf('\n') + 1;
+          const afterSelection = value.substring(end);
+
+          if (start !== end) {
+            // Selección multilinea
+            const selectionStartLineIndex = value.substring(0, start).lastIndexOf('\n') + 1;
+            const fullSelectionText = value.substring(selectionStartLineIndex, end);
+            const lines = fullSelectionText.split('\n');
+
+            const modifiedLines = lines.map(line => {
+              if (line.startsWith('\t')) {
+                return line.substring(1);
+              }
+              if (line.startsWith('    ')) {
+                return line.substring(4);
+              }
+              const matchSpaces = line.match(/^ +/);
+              if (matchSpaces) {
+                const spaceCount = Math.min(matchSpaces[0].length, 4);
+                return line.substring(spaceCount);
+              }
+              return line;
+            });
+
+            const newMiddle = modifiedLines.join('\n');
+            const newText = value.substring(0, selectionStartLineIndex) + newMiddle + afterSelection;
+            setMarkdownText(newText);
+            setModified(true);
+
+            setTimeout(() => {
+              textarea.focus();
+              textarea.setSelectionRange(selectionStartLineIndex, selectionStartLineIndex + newMiddle.length);
+            }, 0);
+          } else {
+            // Línea individual desindentación
+            const currentLine = value.substring(lineStart, start);
+            let indentLength = 0;
+            let newlineText = currentLine;
+
+            if (currentLine.startsWith('\t')) {
+              newlineText = currentLine.substring(1);
+              indentLength = 1;
+            } else if (currentLine.startsWith('    ')) {
+              newlineText = currentLine.substring(4);
+              indentLength = 4;
+            } else {
+              const matchSpaces = currentLine.match(/^ +/);
+              if (matchSpaces) {
+                const spaceCount = Math.min(matchSpaces[0].length, 4);
+                newlineText = currentLine.substring(spaceCount);
+                indentLength = spaceCount;
+              }
+            }
+
+            if (indentLength > 0) {
+              const newText = value.substring(0, lineStart) + newlineText + value.substring(start);
+              setMarkdownText(newText);
+              setModified(true);
+              setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(start - indentLength, start - indentLength);
+              }, 0);
+            }
+          }
+        } else {
+          // Indentación normal (Tab)
+          if (start !== end) {
+            // Selección multilinea
+            const selectionStartLineIndex = value.substring(0, start).lastIndexOf('\n') + 1;
+            const fullSelectionText = value.substring(selectionStartLineIndex, end);
+            const lines = fullSelectionText.split('\n');
+
+            const modifiedLines = lines.map(line => '    ' + line);
+            const newMiddle = modifiedLines.join('\n');
+            const newText = value.substring(0, selectionStartLineIndex) + newMiddle + value.substring(end);
+            
+            setMarkdownText(newText);
+            setModified(true);
+
+            setTimeout(() => {
+              textarea.focus();
+              textarea.setSelectionRange(selectionStartLineIndex, selectionStartLineIndex + newMiddle.length);
+            }, 0);
+          } else {
+            // Línea única (insertar 4 espacios)
+            const before = value.substring(0, start);
+            const after = value.substring(end);
+            const newText = before + '    ' + after;
+
+            setMarkdownText(newText);
+            setModified(true);
+
+            setTimeout(() => {
+              textarea.focus();
+              textarea.setSelectionRange(start + 4, start + 4);
+            }, 0);
+          }
+        }
+      }
+
       // Atajo Ctrl + S para guardar
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
@@ -400,6 +517,44 @@ export const TipTapEditor: React.FC = () => {
           </span>
         </div>
         <div className="flex items-center gap-4">
+          {/* Botones de Control de Vista */}
+          <div className="flex items-center bg-slate-950/80 border border-slate-800 p-0.5 rounded-lg shrink-0 select-none">
+            <button
+              onClick={() => setViewMode('editor')}
+              className={`p-1.5 rounded-md transition-all active:scale-95 ${
+                viewMode === 'editor'
+                  ? 'bg-slate-900 text-brand-400 font-semibold border border-slate-850 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title="Solo Editor (Ocultar Previsualización)"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('split')}
+              className={`p-1.5 rounded-md transition-all active:scale-95 ${
+                viewMode === 'split'
+                  ? 'bg-slate-900 text-brand-400 font-semibold border border-slate-850 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title="Vista Dividida"
+            >
+              <Columns className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('preview')}
+              className={`p-1.5 rounded-md transition-all active:scale-95 ${
+                viewMode === 'preview'
+                  ? 'bg-slate-900 text-brand-400 font-semibold border border-slate-850 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+              title="Solo Previsualización (Ocultar Editor Markdown)"
+            >
+              <Eye className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="h-5 w-[1px] bg-slate-800/80 shrink-0"></div>
+
           <span id="save-indicator" className="text-xs text-slate-500 flex items-center gap-1.5">
             {isSaving ? (
               <span className="w-3 h-3 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></span>
@@ -422,7 +577,7 @@ export const TipTapEditor: React.FC = () => {
       {/* Workspace Dividido (Split editor) */}
       <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Lado Izquierdo: Editor Markdown Puro */}
-        <div className="w-1/2 h-full border-r border-slate-800/50 flex flex-col min-h-0 relative">
+        <div className={`${viewMode === 'preview' ? 'hidden' : viewMode === 'editor' ? 'w-full' : 'w-1/2 border-r border-slate-800/50'} h-full flex flex-col min-h-0 relative`}>
           <div className="px-4 py-1.5 bg-slate-900/30 border-b border-slate-800/50 text-[10px] font-semibold text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1.5 select-none">
             <Edit3 className="w-3 h-3 text-brand-400" />
             <span>Editor Markdown (.md plano)</span>
@@ -478,7 +633,7 @@ export const TipTapEditor: React.FC = () => {
         </div>
 
         {/* Lado Derecho: Visualización Renderizada HTML */}
-        <div className="w-1/2 h-full flex flex-col bg-slate-900/10 min-h-0">
+        <div className={`${viewMode === 'editor' ? 'hidden' : viewMode === 'preview' ? 'w-full' : 'w-1/2'} h-full flex flex-col bg-slate-900/10 min-h-0`}>
           <div className="px-4 py-1.5 bg-slate-900/30 border-b border-slate-800/50 text-[10px] font-semibold text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1.5 select-none">
             <Eye className="w-3 h-3 text-emerald-400 animate-pulse" />
             <span>Visualización Renderizada</span>

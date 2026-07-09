@@ -1,12 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #f5f3ff;
-  --color-brand-100: #ede9fe;
-  --color-brand-500: #8b5cf6;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-900: #4c1d95;
+  --color-brand-50: #faf8f5;
+  --color-brand-100: #f3ece3;
+  --color-brand-200: #e7d8c6;
+  --color-brand-300: #d7c0a3;
+  --color-brand-400: #c6a780;
+  --color-brand-500: #b58d5c;
+  --color-brand-600: #9e7547;
+  --color-brand-700: #825d36;
+  --color-brand-900: #4d351d;
+
+  --color-slate-50: #fafaf9;
+  --color-slate-100: #f5f5f4;
+  --color-slate-200: #e7e5e4;
+  --color-slate-300: #d6d3d1;
+  --color-slate-400: #a8a29e;
+  --color-slate-500: #78716c;
+  --color-slate-600: #57534e;
+  --color-slate-700: #44403c;
+  --color-slate-800: #1d1b1a;
+  --color-slate-900: #151413;
+  --color-slate-950: #0f0e0e;
 }
 
 :root {
@@ -16,23 +31,23 @@
 
 body {
   margin: 0;
-  background-color: #020617; /* bg-slate-950 */
+  background-color: #0f0e0e; /* bg-slate-950 modificado */
 }
 
-/* Custom scrollbar para una estética premium */
+/* Custom scrollbar para una estética premium y nocturna */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.3);
+  background: rgba(29, 27, 26, 0.3);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(181, 141, 92, 0.3);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.6);
+  background: rgba(181, 141, 92, 0.6);
 }
 
 /* Tiptap Editor Styles */
@@ -135,3 +150,17 @@ body {
   color: inherit;
   font-size: inherit;
 }
+
+blockquote {
+  border-left: 4px solid var(--color-brand-500) !important;
+  background-color: rgba(29, 27, 26, 0.4) !important;
+  padding: 0.5rem 1rem !important;
+  margin: 1rem 0 !important;
+  border-radius: 0 0.375rem 0.375rem 0 !important;
+  font-style: italic !important;
+  color: #a8a29e !important;
+}
+blockquote p {
+  margin-bottom: 0 !important;
+}
+
