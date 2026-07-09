@@ -30,18 +30,19 @@ function renderMarkdownToHtml(text: string, imagesMap: Map<string, string>): str
   html = html.replace(/^## (.*?)$/gm, '<h2 class="text-xl font-bold mt-5 mb-3 text-slate-100">$1</h2>');
   html = html.replace(/^### (.*?)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-slate-200">$1</h3>');
 
-  // Citas (blockquotes) con > o >>
-  html = html.replace(/^>>?\s?(.*?)$/gm, '<blockquote><p>$1</p></blockquote>');
-  html = html.replace(/<\/blockquote>\s*<blockquote>/g, '\n');
-
   // Listas de tareas
   html = html.replace(/^- \[ \] (.*?)$/gm, '<div class="flex items-center gap-2 mb-2"><input type="checkbox" disabled class="rounded border-slate-800 bg-slate-950 text-brand-500 focus:ring-0 w-4 h-4"> <span class="text-slate-300 text-sm">$1</span></div>');
   html = html.replace(/^- \[x\] (.*?)$/gm, '<div class="flex items-center gap-2 mb-2"><input type="checkbox" checked disabled class="rounded border-slate-800 bg-slate-950 text-brand-500 focus:ring-0 w-4 h-4"> <span class="text-slate-400 text-sm line-through opacity-70">$1</span></div>');
 
   // Listas normales
   html = html.replace(/^- (.*?)$/gm, '<ul class="list-disc pl-5 mb-3"><li class="text-slate-300 text-sm">$1</li></ul>');
-  // Combinar listas consecutivas
   html = html.replace(/<\/ul>\s*<ul class="list-disc pl-5 mb-3">/g, '');
+
+  // Resaltado de Obsidian ==texto==
+  html = html.replace(/==(.*?)==/g, '<mark class="bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded font-medium">$1</mark>');
+
+  // Tachado de Markdown ~~texto~~
+  html = html.replace(/~~(.*?)~~/g, '<del class="opacity-60 line-through">$1</del>');
 
   // Negritas
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
@@ -59,19 +60,179 @@ function renderMarkdownToHtml(text: string, imagesMap: Map<string, string>): str
   // WikiLinks [[Nota]] a enlaces interactivos
   html = html.replace(/\[\[(.*?)\]\]/g, '<a class="wiki-link text-brand-400 hover:text-brand-300 font-semibold underline decoration-brand-500/30 cursor-pointer" data-target="$1">[[$1]]</a>');
 
-  // Párrafos y saltos de línea
-  const lines = html.split('\n');
-  const blockTags = ['<h1>', '<h2>', '<h3>', '<ul', '<ol', '<pre', '<p', '<div', '<blockquote>', '</blockquote>'];
-  
-  html = lines.map(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return '';
-    const isBlock = blockTags.some(tag => trimmed.startsWith(tag));
-    if (isBlock) return line;
-    return `<p class="mb-3 text-slate-300 text-sm leading-relaxed">${line}</p>`;
-  }).join('\n');
+  // Tags (#tag-name) estilo Obsidian
+  html = html.replace(/\B#([a-zA-Z0-9_\-\/]+)\b/g, '<span class="inline-flex items-center bg-slate-900 border border-slate-800/60 text-brand-300 text-[10px] font-semibold px-2 py-0.5 rounded-full select-none hover:text-brand-200 transition-colors cursor-pointer">#$1</span>');
 
-  return html;
+  // Procesador estructurado de líneas para Citas (blockquotes) y Callouts (Destacados)
+  const lines = html.split('\n');
+  const result: string[] = [];
+  let inBlockquote = false;
+  let inCallout = false;
+  let isCollapsibleCallout = false;
+  
+  const blockTags = ['<h1>', '<h2>', '<h3>', '<ul', '<ol', '<pre', '<p', '<div', '<blockquote>', '</blockquote>', '<details>', '</details>', '<summary>', '</summary>'];
+
+  // Helper para mapear iconos y colores de callouts de Obsidian
+  const getCalloutStyles = (type: string) => {
+    const t = type.toLowerCase();
+    switch (t) {
+      case 'note':
+      case 'info':
+        return { emoji: 'ℹ️', borderClass: 'border-sky-500/80 bg-sky-950/15', textClass: 'text-sky-400' };
+      case 'todo':
+        return { emoji: '☑️', borderClass: 'border-indigo-500/80 bg-indigo-950/15', textClass: 'text-indigo-400' };
+      case 'tip':
+      case 'hint':
+      case 'important':
+        return { emoji: '💡', borderClass: 'border-brand-500/80 bg-brand-950/15', textClass: 'text-brand-300' };
+      case 'success':
+      case 'check':
+      case 'done':
+        return { emoji: '✅', borderClass: 'border-emerald-500/80 bg-emerald-950/15', textClass: 'text-emerald-400' };
+      case 'question':
+      case 'help':
+      case 'faq':
+        return { emoji: '❓', borderClass: 'border-cyan-500/80 bg-cyan-950/15', textClass: 'text-cyan-400' };
+      case 'warning':
+      case 'caution':
+      case 'attention':
+        return { emoji: '⚠️', borderClass: 'border-amber-600/80 bg-amber-950/15', textClass: 'text-amber-400' };
+      case 'failure':
+      case 'fail':
+      case 'missing':
+        return { emoji: '❌', borderClass: 'border-rose-500/80 bg-rose-950/15', textClass: 'text-rose-400' };
+      case 'danger':
+      case 'error':
+        return { emoji: '🚨', borderClass: 'border-red-500/80 bg-red-950/15', textClass: 'text-red-400' };
+      case 'bug':
+        return { emoji: '🐛', borderClass: 'border-red-400/80 bg-red-950/10', textClass: 'text-red-400' };
+      case 'example':
+        return { emoji: '🧪', borderClass: 'border-slate-500/80 bg-slate-950/15', textClass: 'text-slate-400' };
+      case 'quote':
+      case 'cite':
+        return { emoji: '💬', borderClass: 'border-slate-600/80 bg-slate-900/20', textClass: 'text-slate-400' };
+      default:
+        return { emoji: 'ℹ️', borderClass: 'border-brand-500/80 bg-brand-950/15', textClass: 'text-brand-300' };
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Las citas y callouts empiezan con &gt; en el texto escapado
+    const quoteMatch = line.match(/^\s*&gt;\s?(.*)$/);
+    
+    if (quoteMatch) {
+      const content = quoteMatch[1];
+      
+      // Verificamos si es el inicio de un callout: [!tipo] o [!tipo-] o [!tipo+]
+      const calloutMatch = content.match(/^\[!(.*?)\]\s?(.*)$/);
+      
+      if (calloutMatch) {
+        // Cerrar bloques anteriores
+        if (inCallout) {
+          result.push(isCollapsibleCallout ? '</div></details>' : '</div></div>');
+          inCallout = false;
+        }
+        if (inBlockquote) {
+          result.push('</blockquote>');
+          inBlockquote = false;
+        }
+        
+        let typeRaw = calloutMatch[1];
+        const titleText = calloutMatch[2];
+        
+        let collapsibleState: 'none' | 'expanded' | 'collapsed' = 'none';
+        if (typeRaw.endsWith('-')) {
+          collapsibleState = 'collapsed';
+          typeRaw = typeRaw.slice(0, -1);
+        } else if (typeRaw.endsWith('+')) {
+          collapsibleState = 'expanded';
+          typeRaw = typeRaw.slice(0, -1);
+        }
+        
+        const styles = getCalloutStyles(typeRaw);
+        const title = titleText ? titleText.trim() : (typeRaw.charAt(0).toUpperCase() + typeRaw.slice(1));
+        
+        inCallout = true;
+        isCollapsibleCallout = collapsibleState !== 'none';
+        
+        if (isCollapsibleCallout) {
+          const isOpen = collapsibleState === 'expanded' ? 'open' : '';
+          result.push(`<details ${isOpen} class="callout border-l-4 ${styles.borderClass} p-4 my-4 rounded-r-xl select-text transition-all duration-200">
+            <summary class="callout-title font-bold flex items-center gap-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden ${styles.textClass}">
+              <span>${styles.emoji}</span>
+              <span class="flex-1">${title}</span>
+            </summary>
+            <div class="callout-content mt-2 text-sm text-slate-300 leading-relaxed">`);
+        } else {
+          result.push(`<div class="callout border-l-4 ${styles.borderClass} p-4 my-4 rounded-r-xl select-text">
+            <div class="callout-title font-bold flex items-center gap-2 mb-2 ${styles.textClass}">
+              <span>${styles.emoji}</span>
+              <span>${title}</span>
+            </div>
+            <div class="callout-content text-sm text-slate-300 leading-relaxed">`);
+        }
+      } else {
+        // Es contenido interno
+        if (inCallout) {
+          const trimmed = content.trim();
+          if (trimmed) {
+            const isBlock = blockTags.some(tag => trimmed.startsWith(tag));
+            if (isBlock) {
+              result.push(content);
+            } else {
+              result.push(`<p class="mb-2 leading-relaxed">${content}</p>`);
+            }
+          } else {
+            result.push('<div class="h-2"></div>');
+          }
+        } else {
+          // Cita común (blockquote)
+          if (!inBlockquote) {
+            inBlockquote = true;
+            result.push('<blockquote class="border-l-4 border-brand-500 bg-slate-900/40 px-4 py-2 my-4 rounded-r-md text-slate-400 italic">');
+          }
+          const trimmed = content.trim();
+          if (trimmed) {
+            result.push(`<p class="mb-1 leading-relaxed">${content}</p>`);
+          }
+        }
+      }
+    } else {
+      // Línea no-cita: cerrar bloques abiertos
+      if (inCallout) {
+        result.push(isCollapsibleCallout ? '</div></details>' : '</div></div>');
+        inCallout = false;
+      }
+      if (inBlockquote) {
+        result.push('</blockquote>');
+        inBlockquote = false;
+      }
+      
+      const trimmed = line.trim();
+      if (!trimmed) {
+        result.push('');
+      } else {
+        const isBlock = blockTags.some(tag => trimmed.startsWith(tag));
+        if (isBlock) {
+          result.push(line);
+        } else {
+          result.push(`<p class="mb-3 text-slate-300 text-sm leading-relaxed">${line}</p>`);
+        }
+      }
+    }
+  }
+  
+  // Cerrar bloques remanentes al final del documento
+  if (inCallout) {
+    result.push(isCollapsibleCallout ? '</div></details>' : '</div></div>');
+  }
+  if (inBlockquote) {
+    result.push('</blockquote>');
+  }
+  
+  return result.join('\n');
 }
 
 export const TipTapEditor: React.FC = () => {
